@@ -64,7 +64,10 @@ Vagrant.configure("2") do |config|
   # Enable provisioning with a shell script. Additional provisioners such as
   # Puppet, Chef, Ansible, Salt, and Docker are also available. Please see the
   # documentation for more information about their specific syntax and use.
-  config.vm.provision "shell", privileged: false, inline: <<-SHELL
+  
+  # SHELL marks the end of the SHELL provisioning
+  $script = <<-SHELL
+
 	# German keyboard
 	sudo localectl set-keymap de-latin1
   
@@ -72,7 +75,13 @@ Vagrant.configure("2") do |config|
 	
 	# Install prerequisites
     sudo yum groupinstall -y development
-	sudo yum install -y zlib-dev openssl-devel sqlite-devel bzip2-devel, wget
+	sudo yum install -y zlib-dev openssl-devel sqlite-devel bzip2-devel wget 
+	# R specific stuff
+	sudo yum install -y readline-devel xz-devel libcurl-devel texinfo cairo-devel
+	# R devtools
+	sudo yum install -y libxml2-devel
+	# R pandoc for plotly
+	sudo yum install -y epel-release pandoc
 	
 	# Download python
 	wget https://www.python.org/ftp/python/3.6.2/Python-3.6.2.tgz
@@ -86,13 +95,27 @@ Vagrant.configure("2") do |config|
 	cd ..
 	rm -rf Python-3.6.2
 
-	export PATH="$HOME/usr/local/bin:$PATH"
-	
+	# Set path
+	export PATH=$HOME/usr/local/bin:$PATH
+	# Make path permanent
+	echo "export PATH=$HOME/usr/local/bin:$PATH" >> .bashrc
+
 	pip3.6 install --upgrade pip
 	pip3.6 install jupyter
 	pip3.6 install RISE
 	jupyter-nbextension install rise --py --sys-prefix
     jupyter-nbextension enable rise --py --sys-prefix
+
+	# Install custom notebook extensions
+	pip3.6 install jupyter_contrib_nbextensions
+	jupyter contrib nbextension install --user
+	# Install pyton code prettifier
+	pip3.6 install yapf
+	jupyter nbextension enable code_prettify/code_prettify
+	# Install variable inspector
+	jupyter nbextension enable varInspector/main
+
+
     pip3.6 install plotly
 	pip3.6 install iplantuml
 	# TODO 
@@ -105,21 +128,45 @@ Vagrant.configure("2") do |config|
 	
 	# Generate jupyter config (not necessary for now)
 	$HOME/usr/local/bin/jupyter notebook --generate-config -y
-	
+
 	echo "" >> .jupyter/jupyter_notebook_config.py
 	echo "## Custom additions" >> .jupyter/jupyter_notebook_config.py
 	echo "c.NotebookApp.token = ''" >> .jupyter/jupyter_notebook_config.py
 	echo "c.NotebookApp.password = ''" >> .jupyter/jupyter_notebook_config.py
 
-	
-  SHELL
-  
-    config.vm.provision "shell", 
-    inline: "nohup $HOME/usr/local/bin/jupyter-notebook --ip 0.0.0.0 --port 8888 --notebook-dir=$HOME --no-browser &",
-    privileged: false,
-    run: "always"
+	# Download R
+	wget https://cran.uni-muenster.de/src/base/R-3/R-3.4.1.tar.gz
+	tar -xvvzf R-3.4.1.tar.gz
+	rm R-3.4.1.tar.gz
 
-end
+	cd R-3.4.1
+	./configure --prefix=$HOME/usr/local --with-x=no --disable-java
+	make
+	make install
+	cd ..
+	rm -rf R-3.4.1
+
+	# Install R packages
+	$HOME/usr/local/bin/R -e "install.packages('formatR', repos = 'https://cran.uni-muenster.de', dep = TRUE)"
+	$HOME/usr/local/bin/R -e "install.packages('plotly', repos = 'https://cran.uni-muenster.de', dep = TRUE)"
+	$HOME/usr/local/bin/R -e "install.packages('devtools', repos = 'https://cran.uni-muenster.de', dep = TRUE)"
+	$HOME/usr/local/bin/R -e "devtools::install_github('IRkernel/IRkernel')"
+	# to register the kernel in the current R installation
+	$HOME/usr/local/bin/R -e "IRkernel::installspec()"
+
+	echo "## Set default 'type' for png() calls - useful when X11 device is not available!" >> .Rprofile
+	echo "## NOTE: Needs 'cairo' capability" >> .Rprofile
+	echo "options(bitmapType='cairo')" >> .Rprofile
+
+	SHELL
+
+	config.vm.provision "shell", privileged: false, inline: $script
+	
+    config.vm.provision "shell", 
+		inline: "nohup $HOME/usr/local/bin/jupyter-notebook --ip 0.0.0.0 --port 8888 --notebook-dir=$HOME --no-browser &",
+		privileged: false,
+		run: "always"
+	end
 
 
 #Known Issues
