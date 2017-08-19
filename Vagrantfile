@@ -75,33 +75,42 @@ Vagrant.configure("2") do |config|
 	sudo yum install -y zlib-dev openssl-devel sqlite-devel bzip2-devel, wget
 	
 	# Download python
-	wget https://www.python.org/ftp/python/3.5.2/Python-3.5.2.tgz
-	tar -xvvzf Python-3.5.2.tgz
-	rm Python-3.5.2.tgz
+	wget https://www.python.org/ftp/python/3.6.2/Python-3.6.2.tgz
+	tar -xvvzf Python-3.6.2.tgz
+	rm Python-3.6.2.tgz
 
-	cd Python-3.5.2
+	cd Python-3.6.2
 	./configure --prefix=$HOME/usr/local
 	make
 	make altinstall
-	rm -rf Python-3.5.2
+	cd ..
+	rm -rf Python-3.6.2
 
 	export PATH="$HOME/usr/local/bin:$PATH"
 	
-	pip3.5 install --upgrade pip
-	pip3.5 install jupyter
-	pip3.5 install RISE
+	pip3.6 install --upgrade pip
+	pip3.6 install jupyter
+	pip3.6 install RISE
 	jupyter-nbextension install rise --py --sys-prefix
     jupyter-nbextension enable rise --py --sys-prefix
-    pip3.5 install plotly
-	pip3.5 install iplantuml
+    pip3.6 install plotly
+	pip3.6 install iplantuml
 	# TODO 
 	# After merge of iplantuml
 	# pip3 install iplantuml --jarpath .
 	# wget http://sourceforge.net/projects/plantuml/files/plantuml.jar/download
 
-	pip3.5 install numpy
-	pip3.5 install scipy
+	pip3.6 install numpy
+	pip3.6 install scipy
 	
+	# Generate jupyter config (not necessary for now)
+	$HOME/usr/local/bin/jupyter notebook --generate-config -y
+	
+	echo "" >> .jupyter/jupyter_notebook_config.py
+	echo "## Custom additions" >> .jupyter/jupyter_notebook_config.py
+	echo "c.NotebookApp.token = ''" >> .jupyter/jupyter_notebook_config.py
+	echo "c.NotebookApp.password = ''" >> .jupyter/jupyter_notebook_config.py
+
 	
   SHELL
   
