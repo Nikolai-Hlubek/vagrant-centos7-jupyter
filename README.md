@@ -9,10 +9,13 @@ Connect via localhost:8080 on the host.
 Run these commands in the folder where the *Vagrantfile* file is located.
 
 Install or bring up vagrant controlled machine
+
 $ vagrant up
 
 Reprovision vagrant controlled machine
+
 $ vagrant provision
 
 Remove vagrant controlled machine
+
 $ vagrant destroy
